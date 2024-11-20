@@ -12,7 +12,16 @@ const int rfPin = 26;
 const int rbPin = 27;
 const int lfPin = 14;
 const int lbPin = 12;
+const int base_speed = 170;
+const int max_speed = 255;
 
+int right_speed = 0;
+int left_speed = 0;
+
+const int sensor_history = 100;
+const int threshold = 2000;
+const int sensor_on = 1500;
+const int sensor_off = 0;
 
 //input pins for the IR sensors
 const int analogInPin1 = 34; 
@@ -25,18 +34,24 @@ int input[] = {analogInPin1, analogInPin2, analogInPin3, analogInPin4, analogInP
 int sensor[] = {0, 0, 0, 0, 0};
 int sensorWeight[] = {-2, -1, 0, 1, 2};
 
+const int Kp = 5;
+const int Ki = 0;
+const int Kd = 40;
+
+int correction;
 int sensorAvg = 0;
 int sensorSum = 0;
 
-//values read form the IR sensors
-int sensorValue1 = 0;
-int sensorValue2 = 0;
-int sensorValue3 = 0;
-int sensorValue4 = 0;
-int sensorValue5 = 0;
+float p;
+float pp;
+float intg = 0;
+float d;
+
+int sensorHistory[sensor_history][5];
 
 void lineCalc();
 void motorControl();
+int cut(int);
 
 void setup() {
     Serial.begin(115200);
@@ -67,10 +82,19 @@ void setup() {
 
     for (int i = 0; i <= 4; i++){
         sensor[i] = analogRead(input[i]);
-        sensorAvg += sensorWeight[i] * sensor[i] * 1000;
-        sensorSum += sensor[i];
         
+        if(sensor[i] >= threshold){
+            sensorAvg += sensorWeight[i] * sensor_on;
+            sensorSum += sensor[i];
+
+        }
+        else {
+            sensorAvg += sensorWeight[i] * sensor_off;
+            sensorSum += sensor[i];
+        }       
     }
+
+    pp = sensorAvg / sensorSum;
 
 }
 
@@ -86,14 +110,32 @@ void lineCalc(){
 
     for (int i = 0; i <= 4; i++){
         sensor[i] = analogRead(input[i]);
-        sensorAvg += sensorWeight[i] * sensor[i] * 1000;
-        sensorSum += sensor[i];
 
+        if(sensor[i] >= threshold){
+            sensorAvg += sensorWeight[i] * sensor_on;
+            sensorSum += sensor[i];
+
+        }
+        else {
+            sensorAvg += sensorWeight[i] * sensor_off;
+            sensorSum += sensor[i];
+        }
     }
+
+    p = sensorAvg / sensorSum;
+    intg += p;
+    d = p - pp;
+    pp = p;
+
+    correction = Kp * p + Ki * intg + Kd * d;
+
+    correction = cut(correction);
 
 }
 
 void motorControl(){
+    right_speed = base_speed + correction;
+    left_speed = base_speed - correction;
 
 
 }
