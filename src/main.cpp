@@ -39,6 +39,7 @@ const int Ki = 0;
 const int Kd = 40;
 
 int correction;
+int new_correction;
 int sensorAvg = 0;
 int sensorSum = 0;
 
@@ -51,12 +52,14 @@ int sensorHistory[sensor_history][5];
 
 void lineCalc();
 void motorControl();
-int cut(int);
+void printSensor();
+void printData();
+int truncate(int);
 
 void setup() {
     Serial.begin(115200);
 
-    // Configure the PWM channels for right motor forward and backward motion
+    // Configure the PWM channels for right motor forward and backward motion   
     ledcSetup(pwmChannel, pwmFreq, pwmResolution); // channel 0
     ledcAttachPin(rfPin, pwmChannel);
 
@@ -96,6 +99,9 @@ void setup() {
 
     pp = sensorAvg / sensorSum;
 
+    Serial.print("Intial Correction = ");
+    Serial.println(pp);
+
 }
 
 void loop() {
@@ -111,6 +117,8 @@ void lineCalc(){
     for (int i = 0; i <= 4; i++){
         sensor[i] = analogRead(input[i]);
 
+        printSensor();
+
         if(sensor[i] >= threshold){
             sensorAvg += sensorWeight[i] * sensor_on;
             sensorSum += sensor[i];
@@ -122,14 +130,16 @@ void lineCalc(){
         }
     }
 
-    p = sensorAvg / sensorSum;
+    p = (sensorAvg / sensorSum) * 5;
     intg += p;
     d = p - pp;
     pp = p;
 
     correction = Kp * p + Ki * intg + Kd * d;
 
-    correction = cut(correction);
+    new_correction = truncate(correction);
+
+    printData();
 
 }
 
@@ -137,5 +147,55 @@ void motorControl(){
     right_speed = base_speed + correction;
     left_speed = base_speed - correction;
 
+    if(new_correction > 0){
+        ledcWrite(rfPin, right_speed);
+        ledcWrite(lfPin, base_speed);
 
+        Serial.print("Turning right with speed ");
+        Serial.println(new_correction);
+
+    }
+    else if(new_correction < 0){
+        ledcWrite(rfPin, base_speed);
+        ledcWrite(lfPin, left_speed);
+
+        Serial.print("Turning left with speed ");
+        Serial.println(new_correction);
+    }
+    else{
+        ledcWrite(rfPin, base_speed);
+        ledcWrite(lfPin, base_speed);
+
+        Serial.println("Maintaining forward direction, correction = 0");
+        
+    }
+
+}
+
+int truncate(){
+    if(correction > 255){
+        correction = 255;
+
+    }
+    else if(correction < -255){
+        correction = -255;
+
+    }
+
+    return correction;
+
+}
+
+void printData(){
+    Serial.print("p = ");
+    Serial.print(p);
+
+    Serial.print("  i = ");
+    Serial.print(intg);
+
+    Serial.print("  d = ");
+    Serial.println(d);
+
+    Serial.print("correction =  ");
+    Serial.print(correction);
 }
