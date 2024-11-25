@@ -2,7 +2,7 @@
 
     const int pwmChannel = 0;    // PWM channel (0-15)
     const int pwmFreq = 5000;    // Frequency in Hz 
-    const int pwmResolution = 8; // Resolution in bits (2^8 = 256, values from 0 to 255)
+    const int pwmResolution = 9; // Resolution in bits (2^9 = 512, values from 0 to 511)
 
     //output pins for the motors
     const int rfPin = 14;
@@ -11,8 +11,8 @@
     const int lfPin = 13;
     const int lbPin = 2;
     const int enableL = 27;
-    const int base_speed = 170;
-    const int max_speed = 255;
+    const int base_speed = 300;
+    const int max_speed = 511;
 
     int right_speed = 0;
     int left_speed = 0;
@@ -60,12 +60,14 @@
 
         // Configure the PWM channels for right motor forward and backward motion   
         ledcAttachChannel(enableR, pwmFreq, pwmResolution, pwmChannel); // channel 0
-        pinMode(12, OUTPUT);
-        pinMode(14, OUTPUT);        
+        pinMode(enableR, OUTPUT);
+        pinMode(rfPin, OUTPUT);
+        pinMode(rbPin, OUTPUT);
 
-        ledcAttachChannel(enableL, pwmFreq, pwmResolution, pwmChannel + 1) // channel 1
-        pinMode(13, OUTPUT);
-        pinMode(2, OUTPUT);        
+        ledcAttachChannel(enableL, pwmFreq, pwmResolution, pwmChannel + 1); // channel 1
+        pinMode(enableL, OUTPUT);
+        pinMode(lfPin, OUTPUT);
+        pinMode(lbPin, OUTPUT);        
 
 
         pinMode(analogInPin1, INPUT);
@@ -141,46 +143,37 @@
 
         new_correction = truncate();
 
+        motorControl();
+
         printData();
         delay(500);
+
     }
 
     void motorControl(){
-        right_speed = base_speed + correction;
-        left_speed = base_speed - correction;
+        right_speed = base_speed + new_correction;
+        left_speed = base_speed - new_correction;
 
-        if(new_correction > 0){
-            ledcWrite(rfPin, right_speed);
-            ledcWrite(lfPin, base_speed);
+        digitalWrite(rfPin, HIGH);
+        digitalWrite(rbPin, LOW);
+        ledcWrite(enableR, right_speed); 
+        Serial.print("Right speed: ");
+        Serial.print(right_speed);
 
-            Serial.print("Turning right with speed ");
-            Serial.println(new_correction);
-
-        }
-        else if(new_correction < 0){
-            ledcWrite(rfPin, base_speed);
-            ledcWrite(lfPin, left_speed);
-
-            Serial.print("Turning left with speed ");
-            Serial.println(new_correction);
-        }
-        else{
-            ledcWrite(rfPin, base_speed);
-            ledcWrite(lfPin, base_speed);
-
-            Serial.println("Maintaining forward direction, correction = 0");
-            
-        }
-
+        digitalWrite(lfPin, HIGH);
+        digitalWrite(lbPin, LOW);
+        ledcWrite(enableL, left_speed);
+        Serial.print("     Left speed: ");
+        Serial.println(left_speed);
     }
 
     int truncate(){
-        if(correction > 255){
-            correction = 255;
+        if(correction >= max_speed){
+            correction = max_speed;
 
         }
-        else if(correction < -255){
-            correction = -255;
+        else if(correction <= -max_speed){
+            correction = -max_speed;
 
         }
 
