@@ -1,8 +1,11 @@
 #include <Arduino.h>
 
+const int trigPin = 16;
+const int echoPin = 4;
+
 const int pwmChannel = 0;    // PWM channel (0-15)
 const int pwmFreq = 30000;   // Frequency in Hz
-const int pwmResolution = 12; // Resolution in bits (2^12 = 4096, values from 0 to 4095)
+const int pwmResolution = 8; // Resolution in bits (2^8 = 256, values from 0 to 255)
 
 // output pins for the motors
 const int rfPin = 14;
@@ -13,10 +16,10 @@ const int lfPin = 13;
 const int lbPin = 2;
 const int enableL = 27;
 
-const int base_speed = 2650;
+const int base_speed = 165;
 const int max_speed = pow(2, pwmResolution) - 1;
-const int min_speed = 2570;
-const int reverse_speed = 2570;
+const int min_speed = 160;
+const int reverse_speed = 160;
 
 const int sensor_history = 12;
 const int threshold = 1000;
@@ -53,6 +56,7 @@ int sensorHistory[sensor_history][5];
 
 bool checkReverse();
 
+void checkObstacle();
 void lineCalc();
 void reverse();
 void motorControl();
@@ -63,6 +67,9 @@ void printData();
 void setup()
 {
     Serial.begin(115200);
+
+    pinMode(trigPin,OUTPUT);
+    pinMode(echoPin,INPUT);
 
     // Configure the PWM channels for right motor forward and backward motion
     pinMode(enableR, OUTPUT);
@@ -92,7 +99,9 @@ void setup()
 
 void loop()
 {
+    checkObstacle();
     lineCalc();
+
 }
 
 void lineCalc()
