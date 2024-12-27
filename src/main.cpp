@@ -2,7 +2,7 @@
 
 const int pwmChannel = 0;    // PWM channel (0-15)
 const int pwmFreq = 30000;   // Frequency in Hz
-const int pwmResolution = 12; // Resolution in bits (2^12 = 4096, values from 0 to 4095)
+const int pwmResolution = 8; // Resolution in bits (2^12 = 4096, values from 0 to 4095)
 
 // output pins for the motors
 const int rfPin = 14;
@@ -13,12 +13,12 @@ const int lfPin = 13;
 const int lbPin = 2;
 const int enableL = 27;
 
-const int base_speed = 2650;
+const int base_speed = 165;
 const int max_speed = pow(2, pwmResolution) - 1;
-const int min_speed = 2570;
-const int reverse_speed = 2570;
+const int min_speed = 160;
+const int reverse_speed = 160;
 
-const int sensor_history = 12;
+const int sensor_history = 8;
 const int threshold = 1000;
 const int onValue = 2000;
 const int offValue = 0;
@@ -37,7 +37,7 @@ int binSensor[] = {0, 0, 0, 0, 0};
 int sensorWeight[] = {-2, -1, 0, 1, 2};
 
 const int Kp = 2;
-const int Ki = 0;
+const int Ki = 0.02;
 const int Kd = 10;
 
 int correction;
@@ -151,6 +151,8 @@ void lineCalc()
         motorControl();
 
     }
+
+    //delay(500);
 
 }
 
