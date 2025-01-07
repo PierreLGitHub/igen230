@@ -40,6 +40,8 @@ const int Kp = 2;
 const int Ki = 0.02;
 const int Kd = 10;
 
+int last_extreme;
+int reverse_direction;
 int correction;
 int sensorAvg = 0;
 int sensorSum = 0;
@@ -51,7 +53,7 @@ float d;
 
 int sensorHistory[sensor_history][5];
 
-bool checkReverse();
+int checkReverse();
 
 void lineCalc();
 void reverse();
@@ -142,7 +144,7 @@ void lineCalc()
     recordHistory();
 
 
-    if (checkReverse())
+    if (checkReverse() != 0)
     {
         reverse();
     }
@@ -215,39 +217,59 @@ void motorControl(){
 }
 
 void reverse(){
-        digitalWrite(rfPin, LOW);
-        digitalWrite(rbPin, HIGH);
-        digitalWrite(lfPin, LOW);
-        digitalWrite(lbPin, HIGH);
-        ledcWrite(enableR, reverse_speed);
-        ledcWrite(enableL, reverse_speed);
+    int right_reverse;
+    int left_reverse;
 
-        Serial.println("Reversing...");
+    right_reverse = reverse_speed + last_extreme * 10;
+    left_reverse = -reverse_speed + last_extreme * 10;
+
+    digitalWrite(rfPin, LOW);
+    digitalWrite(rbPin, HIGH);
+    digitalWrite(lfPin, LOW);
+    digitalWrite(lbPin, HIGH);
+    ledcWrite(enableR, right_reverse);
+    ledcWrite(enableL, abs(left_reverse));
+
+    Serial.println("Reversing...");
 
 }
 
-bool checkReverse(){
+int checkReverse(){
     int sensors_on = 0;
+    bool extreme;
 
     for (int j = 0; j <= sensor_history - 1; j++){
 
         for (int i = 0; i <= 4; i++){
             sensors_on += sensorHistory[j][i];
 
-        }
+            if(!extreme){
+                if (sensorHistory[j][i] = 1){
+                    if (i = 0){
+                        last_extreme = -1;
+                    }
+
+                    if (i = 4){
+                        last_extreme = 1;
+                    }
+                }
+            }
+        }   
     
     }
 
 
+
     if (sensors_on > 0){
 
-        return false;
+        return 0;
     }
 
     else{
-        return true;
+        return last_extreme;
 
     }
+
 }
 
 void recordHistory(){
